@@ -22,11 +22,11 @@ Using
 
 Example of using:
 
-    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh ag_k
+$ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh ag_k
 
     "cojon@solvemail.info","kidin","kihulunawa"
 
-    $ cat lor-registrator.sh
+$ cat lor-registrator.sh
 
     #!/usr/bin/bash
     pkg_dir="$(dirname -- "$0")/site-packages"
