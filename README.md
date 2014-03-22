@@ -14,7 +14,7 @@ Utility requires module ``html5lib`` (``html5lib`` requires ``six``).
 Status
 ------
 
-Developer version (git master branch).
+Beta release version 0.2.1 .
 
 
 Using
