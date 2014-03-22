@@ -65,14 +65,7 @@ def gen_login():
     
     return ''.join(login_part_list)
 
-def lor_registrator(antigate_key):
-    assert isinstance(antigate_key, str)
-    
-    cookies = cookiejar.CookieJar()
-    opener = url_request.build_opener(
-            url_request.HTTPCookieProcessor(cookiejar=cookies),
-            )
-    
+def gen_login_phase(opener):
     url = url_parse.urljoin(
             TEMP_MAIL_ROOT_URL,
             'request/domains/format/json/',
@@ -103,6 +96,9 @@ def lor_registrator(antigate_key):
     login = gen_login()
     password = gen_login()
     
+    return email, login, password
+
+def lor_open_phase(opener):
     url = url_parse.urljoin(LOR_ROOT_URL, 'register.jsp')
     opener_res = opener.open(
             url_request.Request(url),
@@ -185,6 +181,9 @@ def lor_registrator(antigate_key):
                 'no recaptcha_k',
                 )
     
+    return csrf, recaptcha_k
+
+def get_recaptcha_phase(opener, recaptcha_k):
     url = 'https://www.google.com/recaptcha/api/noscript?{}'.format(
             url_parse.urlencode({'k': recaptcha_k}),
             )
@@ -237,6 +236,9 @@ def lor_registrator(antigate_key):
             )
     recaptcha_data = opener_res.read(REQUEST_READ_LIMIT)
     
+    return recaptcha_challenge, recaptcha_data
+
+def antigate_phase(opener, antigate_key, recaptcha_data):
     data = {
             'method': 'base64',
             'key': antigate_key,
@@ -293,6 +295,12 @@ def lor_registrator(antigate_key):
                 'no recaptcha_response',
                 )
     
+    return recaptcha_response
+
+def lor_register_phase(
+        opener, csrf, recaptcha_challenge, recaptcha_response,
+        email, login, password,
+        ):
     data = {
             'csrf': csrf,
             'recaptcha_challenge_field': recaptcha_challenge,
@@ -332,7 +340,8 @@ def lor_registrator(antigate_key):
         raise LorRegistratorError(
                 'registration fail',
                 )
-    
+
+def mail_phase(opener, email):
     for att_i in range(20):
         time.sleep(5.0)
         
@@ -388,6 +397,9 @@ def lor_registrator(antigate_key):
                 'activate code not received',
                 )
     
+    return activate_code
+
+def lor_activate_phase(opener, csrf, login, password, activate_code):
     data = {
             'csrf': csrf,
             'action': 'new',
@@ -409,5 +421,24 @@ def lor_registrator(antigate_key):
         raise LorRegistratorError(
                 'activation fail',
                 )
+
+def lor_registrator(antigate_key):
+    assert isinstance(antigate_key, str)
+    
+    cookies = cookiejar.CookieJar()
+    opener = url_request.build_opener(
+            url_request.HTTPCookieProcessor(cookiejar=cookies),
+            )
+    
+    email, login, password = gen_login_phase(opener)
+    csrf, recaptcha_k = lor_open_phase(opener)
+    recaptcha_challenge, recaptcha_data = get_recaptcha_phase(opener, recaptcha_k)
+    recaptcha_response = antigate_phase(opener, antigate_key, recaptcha_data)
+    lor_register_phase(
+            opener, csrf, recaptcha_challenge, recaptcha_response,
+            email, login, password,
+            )
+    activate_code = mail_phase(opener, email)
+    lor_activate_phase(opener, csrf, login, password, activate_code)
     
     return email, login, password
