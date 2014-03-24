@@ -242,6 +242,7 @@ def get_recaptcha_phase(opener, recaptcha_k):
 def antigate_phase(opener, antigate_key, recaptcha_data):
     data = {
             'method': 'base64',
+            'soft_id': ANTIGATE_SOFT_ID,
             'key': antigate_key,
             'body': base64.b64encode(recaptcha_data),
             }
@@ -266,7 +267,6 @@ def antigate_phase(opener, antigate_key, recaptcha_data):
         time.sleep(5.0)
         
         data = {
-                'soft_id': ANTIGATE_SOFT_ID,
                 'key': antigate_key,
                 'action': 'get',
                 'id': antigate_task_id,
