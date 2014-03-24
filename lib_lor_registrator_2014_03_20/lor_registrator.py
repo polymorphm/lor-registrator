@@ -22,7 +22,6 @@
 
 assert str is not bytes
 
-import os
 import random
 from urllib import parse as url_parse
 from urllib import request as url_request
