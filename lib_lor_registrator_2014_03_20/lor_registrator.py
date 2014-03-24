@@ -38,6 +38,7 @@ from . import et_find
 TEMP_MAIL_ROOT_URL = 'http://api.temp-mail.ru/'
 LOR_ROOT_URL = 'https://www.linux.org.ru/'
 ANTIGATE_ROOT_URL = 'http://antigate.com/'
+ANTIGATE_SOFT_ID = 585
 REQUEST_TIMEOUT = 60.0
 REQUEST_READ_LIMIT = 10000000
 
@@ -265,6 +266,7 @@ def antigate_phase(opener, antigate_key, recaptcha_data):
         time.sleep(5.0)
         
         data = {
+                'soft_id': ANTIGATE_SOFT_ID,
                 'key': antigate_key,
                 'action': 'get',
                 'id': antigate_task_id,
