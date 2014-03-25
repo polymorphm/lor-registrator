@@ -25,7 +25,6 @@ assert str is not bytes
 import sys
 import os, os.path
 import argparse
-from . import safe_run
 from . import lor_registrator
 
 def main():
@@ -53,8 +52,7 @@ def main():
     
     antigate_key = os.environ[args.antigate]
     
-    lor_registrator_result, lor_registrator_error = safe_run.safe_run(
-            lor_registrator.lor_registrator,
+    lor_registrator_result, lor_registrator_error = lor_registrator.lor_registrator(
             antigate_key,
             )
     

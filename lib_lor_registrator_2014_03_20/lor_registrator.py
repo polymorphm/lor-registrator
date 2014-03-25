@@ -33,6 +33,7 @@ import base64
 import re
 import html5lib
 from . import et_find
+from . import safe_run
 
 TEMP_MAIL_ROOT_URL = 'http://api.temp-mail.ru/'
 LOR_ROOT_URL = 'https://www.linux.org.ru/'
@@ -423,7 +424,7 @@ def lor_activate_phase(opener, csrf, login, password, activate_code):
                 'activation fail',
                 )
 
-def lor_registrator(antigate_key):
+def unsafe_lor_registrator(antigate_key):
     assert isinstance(antigate_key, str)
     
     cookies = cookiejar.CookieJar()
@@ -443,3 +444,6 @@ def lor_registrator(antigate_key):
     lor_activate_phase(opener, csrf, login, password, activate_code)
     
     return email, login, password
+
+def lor_registrator(*args, **kwargs):
+    return safe_run.safe_run(unsafe_lor_registrator, *args, **kwargs)
