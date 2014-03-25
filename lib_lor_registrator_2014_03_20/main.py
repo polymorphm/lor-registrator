@@ -27,6 +27,11 @@ import os, os.path
 import argparse
 from . import lor_registrator
 
+try:
+    from lib_socks_proxy_2013_10_03 import socks_proxy_context
+except ImportError:
+    socks_proxy_context = None
+
 def main():
     parser = argparse.ArgumentParser(
             description='utility for registration on web-site '
@@ -34,12 +39,38 @@ def main():
             )
     
     parser.add_argument(
+            '--proxy',
+            metavar='SOCKS5-PROXY-ADDR',
+            help='address of SOCKS5-proxy in format ``host:post``',
+            )
+    parser.add_argument(
             'antigate',
             metavar='ANTIGATE-KEY-ENV',
             help='system environ variable name with antigate key',
             )
     
     args = parser.parse_args()
+    
+    if args.proxy is not None:
+        if socks_proxy_context is None:
+            print(
+                    'argument error: can not use proxy without module ``lib_socks_proxy_2013_10_03``',
+                    file=sys.stderr,
+                    )
+            exit(code=2)
+        
+        proxy_address_split = args.proxy.rsplit(sep=':', maxsplit=1)
+        
+        if len(proxy_address_split) != 2:
+            print(
+                    'argument error: invalid format of proxy address',
+                    file=sys.stderr,
+                    )
+            exit(code=2)
+        
+        proxy_address = proxy_address_split[0], int(proxy_address_split[1])
+    else:
+        proxy_address = None
     
     if args.antigate not in os.environ:
         print(
@@ -54,6 +85,7 @@ def main():
     
     lor_registrator_result, lor_registrator_error = lor_registrator.lor_registrator(
             antigate_key,
+            proxy_address=proxy_address,
             )
     
     if lor_registrator_error is not None:

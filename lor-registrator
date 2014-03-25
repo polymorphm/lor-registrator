@@ -23,6 +23,14 @@
 
 assert str is not bytes
 
+try:
+    from lib_socks_proxy_2013_10_03 import monkey_patch as socks_proxy_monkey_patch
+except ImportError:
+    pass
+else:
+    # XXX ``monkey_patch()`` must be run before other imports
+    socks_proxy_monkey_patch.monkey_patch()
+
 from lib_lor_registrator_2014_03_20.main import main
 
 if __name__ == '__main__':

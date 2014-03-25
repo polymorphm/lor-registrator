@@ -22,14 +22,21 @@ Using
 
 Example of using:
 
-$ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh ag_k
+    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh ag_k
+
+Out:
 
     "cojon@solvemail.info","kidin","kihulunawa"
 
-$ cat lor-registrator.sh
+The content of file ``lor-registrator.sh`` is:
 
     #!/usr/bin/bash
     pkg_dir="$(dirname -- "$0")/site-packages"
     export PYTHONPATH="$pkg_dir/six-1.6.1:$pkg_dir/html5lib-0.999"
     exec -- "$(dirname -- "$0")/lor-registrator/lor-registrator" "$@"
     false
+
+Example of using with proxy:
+
+    $ sudo systemctl start tor
+    $ ag_k='52453e4a874e3782b713980fa85358fe' --proxy=127.0.0.1:9050 ./lor-registrator.sh ag_k

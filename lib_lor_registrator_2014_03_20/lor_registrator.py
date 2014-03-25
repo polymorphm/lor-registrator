@@ -35,6 +35,11 @@ import html5lib
 from . import et_find
 from . import safe_run
 
+try:
+    from lib_socks_proxy_2013_10_03 import socks_proxy_context
+except ImportError:
+    socks_proxy_context = None
+
 TEMP_MAIL_ROOT_URL = 'http://api.temp-mail.ru/'
 LOR_ROOT_URL = 'https://www.linux.org.ru/'
 ANTIGATE_ROOT_URL = 'http://antigate.com/'
@@ -99,9 +104,10 @@ def gen_login_phase(opener):
     
     return email, login, password
 
-def lor_open_phase(opener):
+def lor_open_phase(opener, open_func):
     url = url_parse.urljoin(LOR_ROOT_URL, 'register.jsp')
-    opener_res = opener.open(
+    opener_res = open_func(
+            opener,
             url_request.Request(url),
             timeout=REQUEST_TIMEOUT,
             )
@@ -184,11 +190,12 @@ def lor_open_phase(opener):
     
     return csrf, recaptcha_k
 
-def get_recaptcha_phase(opener, recaptcha_k):
+def get_recaptcha_phase(opener, open_func, recaptcha_k):
     url = 'https://www.google.com/recaptcha/api/noscript?{}'.format(
             url_parse.urlencode({'k': recaptcha_k}),
             )
-    opener_res = opener.open(
+    opener_res = open_func(
+            opener,
             url_request.Request(url),
             timeout=REQUEST_TIMEOUT,
             )
@@ -231,7 +238,8 @@ def get_recaptcha_phase(opener, recaptcha_k):
     url = 'https://www.google.com/recaptcha/api/image?{}'.format(
             url_parse.urlencode({'c': recaptcha_challenge}),
             )
-    opener_res = opener.open(
+    opener_res = open_func(
+            opener,
             url_request.Request(url),
             timeout=REQUEST_TIMEOUT,
             )
@@ -300,7 +308,8 @@ def antigate_phase(opener, antigate_key, recaptcha_data):
     return recaptcha_response
 
 def lor_register_phase(
-        opener, csrf, recaptcha_challenge, recaptcha_response,
+        opener, open_func,
+        csrf, recaptcha_challenge, recaptcha_response,
         email, login, password,
         ):
     data = {
@@ -315,7 +324,8 @@ def lor_register_phase(
             '_rules': 'on',
             }
     url = url_parse.urljoin(LOR_ROOT_URL, 'register.jsp')
-    opener_res = opener.open(
+    opener_res = open_func(
+            opener,
             url_request.Request(
                     url,
                     data=url_parse.urlencode(data).encode(errors='replace'),
@@ -401,7 +411,7 @@ def mail_phase(opener, email):
     
     return activate_code
 
-def lor_activate_phase(opener, csrf, login, password, activate_code):
+def lor_activate_phase(opener, open_func, csrf, login, password, activate_code):
     data = {
             'csrf': csrf,
             'action': 'new',
@@ -410,7 +420,8 @@ def lor_activate_phase(opener, csrf, login, password, activate_code):
             'activation': activate_code,
             }
     url = url_parse.urljoin(LOR_ROOT_URL, 'activate.jsp')
-    opener_res = opener.open(
+    opener_res = open_func(
+            opener,
             url_request.Request(
                     url,
                     data=url_parse.urlencode(data).encode(errors='replace'),
@@ -424,8 +435,20 @@ def lor_activate_phase(opener, csrf, login, password, activate_code):
                 'activation fail',
                 )
 
-def unsafe_lor_registrator(antigate_key):
+def unsafe_lor_registrator(antigate_key, proxy_address=None):
     assert isinstance(antigate_key, str)
+    
+    if proxy_address is not None:
+        # open via proxy
+        
+        def open_func(opener, *args, **kwargs):
+            with socks_proxy_context.socks_proxy_context(proxy_address=proxy_address):
+                return opener.open(*args, **kwargs)
+    else:
+        # default open action
+        
+        def open_func(opener, *args, **kwargs):
+            return opener.open(*args, **kwargs)
     
     cookies = cookiejar.CookieJar()
     opener = url_request.build_opener(
@@ -433,15 +456,18 @@ def unsafe_lor_registrator(antigate_key):
             )
     
     email, login, password = gen_login_phase(opener)
-    csrf, recaptcha_k = lor_open_phase(opener)
-    recaptcha_challenge, recaptcha_data = get_recaptcha_phase(opener, recaptcha_k)
+    csrf, recaptcha_k = lor_open_phase(opener, open_func)
+    recaptcha_challenge, recaptcha_data = get_recaptcha_phase(
+            opener, open_func, recaptcha_k,
+            )
     recaptcha_response = antigate_phase(opener, antigate_key, recaptcha_data)
     lor_register_phase(
-            opener, csrf, recaptcha_challenge, recaptcha_response,
+            opener, open_func,
+            csrf, recaptcha_challenge, recaptcha_response,
             email, login, password,
             )
     activate_code = mail_phase(opener, email)
-    lor_activate_phase(opener, csrf, login, password, activate_code)
+    lor_activate_phase(opener, open_func, csrf, login, password, activate_code)
     
     return email, login, password
 
