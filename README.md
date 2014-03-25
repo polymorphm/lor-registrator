@@ -39,4 +39,4 @@ The content of file ``lor-registrator.sh`` is:
 Example of using with proxy:
 
     $ sudo systemctl start tor
-    $ ag_k='52453e4a874e3782b713980fa85358fe' --proxy=127.0.0.1:9050 ./lor-registrator.sh ag_k
+    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh --proxy=127.0.0.1:9050 ag_k
