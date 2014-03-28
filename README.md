@@ -39,16 +39,16 @@ Out:
 
 The content of file ``emails.csv`` is:
 
-    ibukimujiji+lor@yandex.ru,imap.yandex.ru,ibukimujiji@yandex.ru,3o9WgePZ
-    olypalin+lor@yandex.ru,imap.yandex.ru,olypalin@yandex.ru,5DiWDiiU
-    wuhowol+lor@yandex.ru,imap.yandex.ru,wuhowol@yandex.ru,E-qLBQYUA
-    nerawakihu+lor@yandex.ru,imap.yandex.ru,nerawakihu@yandex.ru,psbeCK99
-    lakyqipe+lor@yandex.ru,imap.yandex.ru,lakyqipe@yandex.ru,4eC^LT&fa
-    honulazuf+lor@yandex.ru,imap.yandex.ru,honulazuf@yandex.ru,gTAojFay
-    bufybadob+lor@yandex.ru,imap.yandex.ru,bufybadob@yandex.ru,arIa2OfiMu
-    hupapyvyw+lor@yandex.ru,imap.yandex.ru,hupapyvyw@yandex.ru,nikolAS8
-    exuhaqyz+lor@yandex.ru,imap.yandex.ru,exuhaqyz@yandex.ru,2251975_
-    hejowinag+lor@yandex.ru,imap.yandex.ru,hejowinag@yandex.ru,QtJsGLCB
+    ibukimujiji+lor@yandex.ru,imap.yandex.com,ibukimujiji@yandex.ru,3o9WgePZ
+    olypalin+lor@yandex.ru,imap.yandex.com,olypalin@yandex.ru,5DiWDiiU
+    wuhowol+lor@yandex.ru,imap.yandex.com,wuhowol@yandex.ru,E-qLBQYUA
+    nerawakihu+lor@yandex.ru,imap.yandex.com,nerawakihu@yandex.ru,psbeCK99
+    lakyqipe+lor@yandex.ru,imap.yandex.com,lakyqipe@yandex.ru,4eC^LT&fa
+    honulazuf+lor@yandex.ru,imap.yandex.com,honulazuf@yandex.ru,gTAojFay
+    bufybadob+lor@yandex.ru,imap.yandex.com,bufybadob@yandex.ru,arIa2OfiMu
+    hupapyvyw+lor@yandex.ru,imap.yandex.com,hupapyvyw@yandex.ru,nikolAS8
+    exuhaqyz+lor@yandex.ru,imap.yandex.com,exuhaqyz@yandex.ru,2251975_
+    hejowinag+lor@yandex.ru,imap.yandex.com,hejowinag@yandex.ru,QtJsGLCB
 
 The content of file ``lor-registrator.sh`` is:
 
