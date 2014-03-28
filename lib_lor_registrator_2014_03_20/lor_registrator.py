@@ -436,6 +436,10 @@ def unsafe_lor_registrator(
         antigate_key,
         proxy_address=None,
         ):
+    assert isinstance(email, str)
+    assert isinstance(imap_host, str)
+    assert isinstance(email_login, str)
+    assert isinstance(email_password, str)
     assert isinstance(antigate_key, str)
     
     if proxy_address is not None:
