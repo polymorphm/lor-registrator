@@ -26,6 +26,8 @@ import random
 from urllib import parse as url_parse
 from urllib import request as url_request
 from http import cookiejar
+import json
+import random
 import time
 import base64
 import re
@@ -82,6 +84,44 @@ def gen_login():
     
     return ''.join(login_part_list)
 
+def get_useragent_list():
+    url = 'https://getuseragent.blogspot.com/2014/03/getuseragent.html'
+    marker_prefix = 'USERAGENT_DATA'
+    start_marker = '{}_START'.format(marker_prefix)
+    stop_marker = '{}_STOP'.format(marker_prefix)
+    
+    opener = url_request.build_opener()
+    opener_res = opener.open(
+            url_request.Request(url),
+            timeout=REQUEST_TIMEOUT,
+            )
+    raw_data = opener_res.read(REQUEST_READ_LIMIT).decode(errors='replace')
+    start_pos = raw_data.find(start_marker)
+    stop_pos = raw_data.find(stop_marker)
+    
+    if start_pos == -1 or stop_pos == -1:
+        raise ValueError(
+                'not found: start_marker or stop_marker',
+                )
+    
+    useragent_raw_data = raw_data[start_pos+len(start_marker):stop_pos]
+    useragent_data = json.loads(useragent_raw_data)
+    
+    if not isinstance(useragent_data, (tuple, list)):
+        raise ValueError(
+                'useragent_data is not isinstance of tuple-or-list',
+                )
+    
+    useragent_list = []
+    
+    for useragent_item in useragent_data:
+        if not isinstance(useragent_item, str):
+            continue
+        
+        useragent_list.append(useragent_item)
+    
+    return tuple(useragent_list)
+
 def mail_fetch(email, imap_host, email_login, email_password):
     try:
         imap = SafeIMAP4(host=imap_host)
@@ -127,11 +167,11 @@ def mail_fetch(email, imap_host, email_login, email_password):
                 )
         raise imaplib.IMAP4.error(error_str)
 
-def lor_open_phase(opener, open_func):
+def lor_open_phase(opener, open_func, useragent):
     url = url_parse.urljoin(LOR_ROOT_URL, 'register.jsp')
     opener_res = open_func(
             opener,
-            url_request.Request(url),
+            url_request.Request(url, headers={'User-Agent': useragent}),
             timeout=REQUEST_TIMEOUT,
             )
     data = opener_res.read(REQUEST_READ_LIMIT).decode(errors='replace')
@@ -213,13 +253,13 @@ def lor_open_phase(opener, open_func):
     
     return csrf, recaptcha_k
 
-def get_recaptcha_phase(opener, open_func, recaptcha_k):
+def get_recaptcha_phase(opener, open_func, useragent, recaptcha_k):
     url = 'https://www.google.com/recaptcha/api/noscript?{}'.format(
             url_parse.urlencode({'k': recaptcha_k}),
             )
     opener_res = open_func(
             opener,
-            url_request.Request(url),
+            url_request.Request(url, headers={'User-Agent': useragent}),
             timeout=REQUEST_TIMEOUT,
             )
     data = opener_res.read(REQUEST_READ_LIMIT).decode(errors='replace')
@@ -263,7 +303,7 @@ def get_recaptcha_phase(opener, open_func, recaptcha_k):
             )
     opener_res = open_func(
             opener,
-            url_request.Request(url),
+            url_request.Request(url, headers={'User-Agent': useragent}),
             timeout=REQUEST_TIMEOUT,
             )
     recaptcha_data = opener_res.read(REQUEST_READ_LIMIT)
@@ -331,7 +371,7 @@ def antigate_phase(opener, antigate_key, recaptcha_data):
     return recaptcha_response
 
 def lor_register_phase(
-        opener, open_func,
+        opener, open_func, useragent,
         csrf, recaptcha_challenge, recaptcha_response,
         email, login, password,
         ):
@@ -352,6 +392,7 @@ def lor_register_phase(
             url_request.Request(
                     url,
                     data=url_parse.urlencode(data).encode(errors='replace'),
+                    headers={'User-Agent': useragent},
                     ),
             timeout=REQUEST_TIMEOUT,
             )
@@ -407,7 +448,10 @@ def mail_phase(email, imap_host, email_login, email_password):
     
     return activate_code
 
-def lor_activate_phase(opener, open_func, csrf, login, password, activate_code):
+def lor_activate_phase(
+        opener, open_func, useragent,
+        csrf, login, password, activate_code,
+        ):
     data = {
             'csrf': csrf,
             'action': 'new',
@@ -421,6 +465,7 @@ def lor_activate_phase(opener, open_func, csrf, login, password, activate_code):
             url_request.Request(
                     url,
                     data=url_parse.urlencode(data).encode(errors='replace'),
+                    headers={'User-Agent': useragent},
                     ),
             timeout=REQUEST_TIMEOUT,
             )
@@ -457,23 +502,30 @@ def unsafe_lor_registrator(
     login = gen_login()
     password = gen_login()
     
+    useragent_list = get_useragent_list()
+    useragent = random.choice(useragent_list)
+    
     cookies = cookiejar.CookieJar()
     opener = url_request.build_opener(
             url_request.HTTPCookieProcessor(cookiejar=cookies),
             )
     
-    csrf, recaptcha_k = lor_open_phase(opener, open_func)
+    csrf, recaptcha_k = lor_open_phase(opener, open_func, useragent)
     recaptcha_challenge, recaptcha_data = get_recaptcha_phase(
-            opener, open_func, recaptcha_k,
+            opener, open_func, useragent,
+            recaptcha_k,
             )
     recaptcha_response = antigate_phase(opener, antigate_key, recaptcha_data)
     lor_register_phase(
-            opener, open_func,
+            opener, open_func, useragent,
             csrf, recaptcha_challenge, recaptcha_response,
             email, login, password,
             )
     activate_code = mail_phase(email, imap_host, email_login, email_password)
-    lor_activate_phase(opener, open_func, csrf, login, password, activate_code)
+    lor_activate_phase(
+            opener, open_func, useragent,
+            csrf, login, password, activate_code,
+            )
     
     return email, login, password
 
