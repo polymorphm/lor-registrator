@@ -91,8 +91,6 @@ def mail_fetch(email, imap_host, email_login, email_password):
             imap.select()
             typ, search_data = imap.search(None, 'ALL')
             
-            # TODO search limit --- 3 days
-            
             for num in reversed(search_data[0].split()):
                 typ, fetch_data = imap.fetch(num, '(RFC822)')
                 
