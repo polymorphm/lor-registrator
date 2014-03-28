@@ -14,7 +14,7 @@ Utility requires module ``html5lib`` (``html5lib`` requires ``six``).
 Status
 ------
 
-Developer version (git master branch).
+Beta release lor-registrator-0.4.1 .
 
 
 Using
