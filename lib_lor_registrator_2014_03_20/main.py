@@ -25,12 +25,26 @@ assert str is not bytes
 import sys
 import os, os.path
 import argparse
+import csv
 from . import lor_registrator
 
 try:
     from lib_socks_proxy_2013_10_03 import socks_proxy_context
 except ImportError:
     socks_proxy_context = None
+
+def read_emails(path):
+    with open(path, encoding='utf-8', newline='', errors='replace') as fd:
+        reader = csv.reader(fd)
+        for row in reader:
+            if len(row) != 4:
+                raise ValueError(
+                        'invalid format of emails file',
+                        )
+            
+            email, imap_host, email_login, email_password = row
+            
+            yield email, imap_host, email_login, email_password
 
 def main():
     parser = argparse.ArgumentParser(
@@ -42,6 +56,12 @@ def main():
             '--proxy',
             metavar='SOCKS5-PROXY-ADDR',
             help='address of SOCKS5-proxy in format ``host:post``',
+            )
+    parser.add_argument(
+            'emails',
+            metavar='EMAIL-LIST-FILE-PATH',
+            help='path to file with email list in CSV-format: '
+                    'email,imap_host,email_login,email_password',
             )
     parser.add_argument(
             'antigate',
@@ -81,24 +101,27 @@ def main():
                 )
         exit(code=2)
     
+    emails_path = args.emails
     antigate_key = os.environ[args.antigate]
     
-    lor_registrator_result, lor_registrator_error = lor_registrator.lor_registrator(
-            antigate_key,
-            proxy_address=proxy_address,
-            )
-    
-    if lor_registrator_error is not None:
-        print('error: {!r}: {}'.format(
-                lor_registrator_error[0],
-                lor_registrator_error[1],
-                ), file=sys.stderr)
-        exit(code=1)
-    
-    email, login, password = lor_registrator_result
-    
-    print('"{}","{}","{}"'.format(
-            email.replace('"', '""'),
-            login.replace('"', '""'),
-            password.replace('"', '""'),
-            ))
+    for email, imap_host, email_login, email_password in read_emails(emails_path):
+        lor_registrator_result, lor_registrator_error = lor_registrator.lor_registrator(
+                email, imap_host, email_login, email_password,
+                antigate_key,
+                proxy_address=proxy_address,
+                )
+        
+        if lor_registrator_error is not None:
+            print('error: {!r}: {}'.format(
+                    lor_registrator_error[0],
+                    lor_registrator_error[1],
+                    ), file=sys.stderr)
+            continue
+        
+        email, login, password = lor_registrator_result
+        
+        print('"{}","{}","{}"'.format(
+                email.replace('"', '""'),
+                login.replace('"', '""'),
+                password.replace('"', '""'),
+                ))

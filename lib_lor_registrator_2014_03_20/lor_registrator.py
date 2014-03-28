@@ -27,11 +27,12 @@ from urllib import parse as url_parse
 from urllib import request as url_request
 from http import cookiejar
 import time
-import json
-import hashlib
 import base64
 import re
 import html5lib
+import socket
+import imaplib
+from email import parser as email_parser
 from . import et_find
 from . import safe_run
 
@@ -40,7 +41,6 @@ try:
 except ImportError:
     socks_proxy_context = None
 
-TEMP_MAIL_ROOT_URL = 'http://api.temp-mail.ru/'
 LOR_ROOT_URL = 'https://www.linux.org.ru/'
 ANTIGATE_ROOT_URL = 'http://antigate.com/'
 ANTIGATE_SOFT_ID = 585
@@ -50,8 +50,19 @@ REQUEST_READ_LIMIT = 10000000
 class LorRegistratorError(Exception):
     pass
 
+class SafeIMAP4(imaplib.IMAP4):
+    def _create_socket(self):
+        sock = socket.create_connection(
+                (self.host, self.port),
+                timeout=15.0,
+                )
+        
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        
+        return sock
+
 def gen_login():
-    login_len = random.randrange(5, 11)
+    login_len = random.randrange(7, 11)
     login_part_list = []
     
     is_next_vowel = False
@@ -71,38 +82,52 @@ def gen_login():
     
     return ''.join(login_part_list)
 
-def gen_login_phase(opener):
-    url = url_parse.urljoin(
-            TEMP_MAIL_ROOT_URL,
-            'request/domains/format/json/',
-            )
-    opener_res = opener.open(
-            url_request.Request(url),
-            timeout=REQUEST_TIMEOUT,
-            )
-    data = opener_res.read(REQUEST_READ_LIMIT).decode(errors='replace')
-    email_domain_list = json.loads(data)
-    
-    if not isinstance(email_domain_list, (tuple, list)) or \
-            not email_domain_list:
-        raise LorRegistratorError(
-                'no email_domain_list',
+def mail_fetch(email, imap_host, email_login, email_password):
+    try:
+        imap = SafeIMAP4(host=imap_host)
+        try:
+            imap.starttls()
+            imap.login(email_login, email_password)
+            imap.select()
+            typ, search_data = imap.search(None, 'ALL')
+            
+            # TODO search limit --- 3 days
+            
+            for num in reversed(search_data[0].split()):
+                typ, fetch_data = imap.fetch(num, '(RFC822)')
+                
+                msg_parser = email_parser.BytesFeedParser()
+                msg_parser.feed(fetch_data[0][1])
+                msg = msg_parser.close()
+                
+                msg_from = msg.get_all('from')
+                msg_to = msg.get_all('to')
+                msg_subject = msg.get_all('subject')
+                
+                if not msg_from or tuple(msg_from) != ('no-reply@linux.org.ru',) or \
+                        not msg_to or tuple(msg_to) != (email,) or \
+                        not msg_subject or tuple(msg_subject) != ('Linux.org.ru registration',):
+                    continue
+                
+                for msg_part in msg.walk():
+                    if msg.get_content_type() == 'text/plain':
+                        payload = msg.get_payload(decode=True)
+                        
+                        assert isinstance(payload, bytes)
+                        
+                        msg_text = payload.decode(errors='replace')
+                        
+                        return msg_text
+            
+            imap.close()
+        finally:
+            imap.logout()
+    except imaplib.IMAP4.error as imap_error:
+        error_str = 'email is {!r}, error is {!r}'.format(
+                email,
+                imap_error,
                 )
-    
-    email_domain = random.choice(email_domain_list)
-    
-    if not isinstance(email_domain, str) or \
-            not email_domain:
-        raise LorRegistratorError(
-                'no email_domain',
-                )
-    
-    email_login = gen_login()
-    email = email_login + email_domain
-    login = gen_login()
-    password = gen_login()
-    
-    return email, login, password
+        raise imaplib.IMAP4.error(error_str)
 
 def lor_open_phase(opener, open_func):
     url = url_parse.urljoin(LOR_ROOT_URL, 'register.jsp')
@@ -353,55 +378,28 @@ def lor_register_phase(
                 'registration fail',
                 )
 
-def mail_phase(opener, email):
+def mail_phase(email, imap_host, email_login, email_password):
     for att_i in range(20):
         time.sleep(5.0)
         
-        email_md5 = hashlib.md5(email.encode(errors='replace')).hexdigest()
-        url = url_parse.urljoin(
-                TEMP_MAIL_ROOT_URL,
-                'request/mail/id/{}/format/json/'.format(email_md5),
-                )
-        opener_res = opener.open(
-                url_request.Request(url),
-                timeout=REQUEST_TIMEOUT,
-                )
-        data = opener_res.read(REQUEST_READ_LIMIT).decode(errors='replace')
-        mail_file_list = json.loads(data)
+        mail_text = mail_fetch(email, imap_host, email_login, email_password)
         
-        if not isinstance(mail_file_list, (tuple, list)) or \
-                not mail_file_list:
+        if not mail_text:
             continue
         
-        for mail_file in mail_file_list:
-            if not isinstance(mail_file, dict) or not mail_file:
-                continue
-            
-            mail_from = mail_file.get('mail_from')
-            
-            if not isinstance(mail_from, str) or \
-                    mail_from != 'no-reply@linux.org.ru':
-                continue
-            
-            mail_text_only = mail_file.get('mail_text_only')
-            
-            if not isinstance(mail_text_only, str) or not mail_text_only:
-                continue
-            
-            activate_key_prefix = 'Код активации: '
-            key_match = re.search(
-                    r'\s' + re.escape(activate_key_prefix) + r'(?P<code>\w+)\s',
-                    mail_text_only,
-                    flags=re.S,
-                    )
-            
-            if key_match is None:
-                continue
-            
-            activate_code = key_match.group('code')
-            break
-        else:
+        assert isinstance(mail_text, str)
+        
+        activate_key_prefix = 'Код активации: '
+        key_match = re.search(
+                r'\s' + re.escape(activate_key_prefix) + r'(?P<code>\w+)\s',
+                mail_text,
+                flags=re.S,
+                )
+        
+        if key_match is None:
             continue
+        
+        activate_code = key_match.group('code')
         
         break
     else:
@@ -435,7 +433,11 @@ def lor_activate_phase(opener, open_func, csrf, login, password, activate_code):
                 'activation fail',
                 )
 
-def unsafe_lor_registrator(antigate_key, proxy_address=None):
+def unsafe_lor_registrator(
+        email, imap_host, email_login, email_password,
+        antigate_key,
+        proxy_address=None,
+        ):
     assert isinstance(antigate_key, str)
     
     if proxy_address is not None:
@@ -450,12 +452,14 @@ def unsafe_lor_registrator(antigate_key, proxy_address=None):
         def open_func(opener, *args, **kwargs):
             return opener.open(*args, **kwargs)
     
+    login = gen_login()
+    password = gen_login()
+    
     cookies = cookiejar.CookieJar()
     opener = url_request.build_opener(
             url_request.HTTPCookieProcessor(cookiejar=cookies),
             )
     
-    email, login, password = gen_login_phase(opener)
     csrf, recaptcha_k = lor_open_phase(opener, open_func)
     recaptcha_challenge, recaptcha_data = get_recaptcha_phase(
             opener, open_func, recaptcha_k,
@@ -466,7 +470,7 @@ def unsafe_lor_registrator(antigate_key, proxy_address=None):
             csrf, recaptcha_challenge, recaptcha_response,
             email, login, password,
             )
-    activate_code = mail_phase(opener, email)
+    activate_code = mail_phase(email, imap_host, email_login, email_password)
     lor_activate_phase(opener, open_func, csrf, login, password, activate_code)
     
     return email, login, password

@@ -22,11 +22,33 @@ Using
 
 Example of using:
 
-    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh ag_k
+    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh emails.csv ag_k
 
 Out:
 
-    "cojon@solvemail.info","kidin","kihulunawa"
+    "ibukimujiji+lor@yandex.ru","lizanemom","nanelima"
+    "olypalin+lor@yandex.ru","ziwocuzuka","qozivahiba"
+    "wuhowol+lor@yandex.ru","gokaqek","sogakiwimu"
+    "nerawakihu+lor@yandex.ru","catuset","tetaros"
+    error: <class 'imaplib.IMAP4.error'>: email is 'lakyqipe+lor@yandex.ru', error is error(b'[AUTHENTICATIONFAILED] LOGIN failure sc=ToVSFM5ZNqMO',)
+    "honulazuf+lor@yandex.ru","riyecog","sipuhovuga"
+    "bufybadob+lor@yandex.ru","gepufonoz","kefenefa"
+    "hupapyvyw+lor@yandex.ru","wiyigusaxi","baqubab"
+    "exuhaqyz+lor@yandex.ru","jinihecaza","vamolohe"
+    "hejowinag+lor@yandex.ru","guzoluyivi","tupobuk"
+
+The content of file ``emails.csv`` is:
+
+    ibukimujiji+lor@yandex.ru,imap.yandex.ru,ibukimujiji@yandex.ru,3o9WgePZ
+    olypalin+lor@yandex.ru,imap.yandex.ru,olypalin@yandex.ru,5DiWDiiU
+    wuhowol+lor@yandex.ru,imap.yandex.ru,wuhowol@yandex.ru,E-qLBQYUA
+    nerawakihu+lor@yandex.ru,imap.yandex.ru,nerawakihu@yandex.ru,psbeCK99
+    lakyqipe+lor@yandex.ru,imap.yandex.ru,lakyqipe@yandex.ru,4eC^LT&fa
+    honulazuf+lor@yandex.ru,imap.yandex.ru,honulazuf@yandex.ru,gTAojFay
+    bufybadob+lor@yandex.ru,imap.yandex.ru,bufybadob@yandex.ru,arIa2OfiMu
+    hupapyvyw+lor@yandex.ru,imap.yandex.ru,hupapyvyw@yandex.ru,nikolAS8
+    exuhaqyz+lor@yandex.ru,imap.yandex.ru,exuhaqyz@yandex.ru,2251975_
+    hejowinag+lor@yandex.ru,imap.yandex.ru,hejowinag@yandex.ru,QtJsGLCB
 
 The content of file ``lor-registrator.sh`` is:
 
@@ -39,4 +61,4 @@ The content of file ``lor-registrator.sh`` is:
 Example of using with proxy:
 
     $ sudo systemctl start tor
-    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh --proxy=127.0.0.1:9050 ag_k
+    $ ag_k='52453e4a874e3782b713980fa85358fe' ./lor-registrator.sh --proxy=127.0.0.1:9050 emails.csv ag_k
