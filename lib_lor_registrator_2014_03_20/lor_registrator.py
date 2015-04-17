@@ -129,7 +129,7 @@ def mail_fetch(email, imap_host, email_login, email_password):
             imap.starttls()
             imap.login(email_login, email_password)
             imap.select()
-            typ, search_data = imap.search(None, 'ALL')
+            typ, search_data = imap.search(None, 'UNSEEN')
             
             for num in reversed(search_data[0].split()):
                 typ, fetch_data = imap.fetch(num, '(RFC822)')
@@ -148,8 +148,8 @@ def mail_fetch(email, imap_host, email_login, email_password):
                     continue
                 
                 for msg_part in msg.walk():
-                    if msg.get_content_type() == 'text/plain':
-                        payload = msg.get_payload(decode=True)
+                    if msg_part.get_content_type() == 'text/plain':
+                        payload = msg_part.get_payload(decode=True)
                         
                         assert isinstance(payload, bytes)
                         
